@@ -1,0 +1,198 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul 20 11:12:34 2021
+
+@author: Allen
+"""
+
+import numpy as np
+from scipy.integrate import odeint
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.patches as patches
+import matplotlib.ticker as ticker
+
+# Lorenz paramters and initial conditions
+sigma, beta, rho = 10, 2.667, 28
+u0, v0, w0 = 0, 1, 1.05
+
+# Maximum time point and total number of time points
+tmax, n = 40, 4000
+
+def lorenz(X, t, sigma, beta, rho):
+    """The Lorenz equations."""
+    u, v, w = X
+    up = -sigma*(u - v)
+    vp = rho*u - v - u*w
+    wp = -beta*w + u*v
+    return up, vp, wp
+
+def van_der_pol(X, t, mu):
+    u, v = X
+    up = v
+    vp = mu*(1-u**2)*v - u
+    return up, vp
+
+def rossler(X, t, gamma, alpha, beta):
+    u, v, w = X
+    up = -v - w
+    vp = u + alpha*v
+    wp = beta + (u-gamma)*w
+    return up, vp, wp
+
+t = np.linspace(0, tmax, n)
+ls = np.linspace(0,1,2000)
+cmap = cm.viridis(ls)
+# Integrate the Lorenz System on the time grid t
+f = odeint(lorenz, (u0, v0, w0), t, args=(sigma, beta, rho))
+LS_x, LS_y, LS_z = f.T
+
+# Plot the Lorenz attractor using a Matplotlib 3D projection
+fig = plt.figure(figsize = (6,4))
+ax = fig.gca(projection='3d')
+ax.scatter(LS_x[2000:4000], LS_y[2000:4000], LS_z[2000:4000], color = cmap, s=5)
+ax.set_xlabel('$u$')
+ax.set_ylabel('$v$')
+ax.set_zlabel('$w$')
+plt.savefig('PRS_lorenz.eps', format='eps')
+plt.show()
+
+fig = plt.figure(figsize = (6,2))
+ax = fig.gca()
+ax.scatter(t[2000:4000],LS_x[2000:4000], color = cmap,s=5)
+ax.set_xlabel('$t$')
+ax.set_ylabel('$u$',rotation=0)
+plt.savefig('PRS_lorenz_x.eps', format='eps')
+
+#randomly generate A, C
+A = np.random.rand(7,7)-0.5
+A = A / np.linalg.norm(A)
+
+C = np.random.rand(7,)-0.5
+C = C / np.linalg.norm(A)
+
+#compute reservoir states
+R = np.zeros((7,4000))
+R[:,0] = np.zeros(7,)
+for k in range(0,4000-1):
+    R[:,k+1] = A@R[:,k] + C*LS_x[k]
+
+#project onto states
+U,S,V = np.linalg.svd(R)
+projx = U[:,0:1].T@R[:,2000:4000] 
+projy = U[:,1:2].T@R[:,2000:4000]
+projz = U[:,2:3].T@R[:,2000:4000]
+    
+#plot reservoir states  
+fig = plt.figure(figsize = (6,4))
+ax = fig.gca(projection='3d')
+ax.scatter(projx, projy, projz, color = cmap, s=5)
+ax.set_xlabel('$u$')
+ax.set_ylabel('$v$')
+ax.set_zlabel('$w$')
+plt.savefig('PRS_lorenz_reservoir.eps', format='eps')
+plt.show()   
+
+t = np.linspace(0, tmax, n)
+ls = np.linspace(0,1,700)
+cmap = cm.twilight(ls)
+f = odeint(van_der_pol, (-4, 5), t, args=(1,))
+VDPS_x, VDPS_y = f.T
+
+fig = plt.figure(figsize = (6,4))
+ax = fig.gca()
+ax.scatter(VDPS_x[3300:4000], VDPS_y[3300:4000], color = cmap, s=5)
+ax.set_xlabel('$u$')
+ax.set_ylabel('$v$')
+plt.savefig('PRS_VDP.eps', format='eps')
+plt.show()
+
+fig = plt.figure(figsize = (6,2))
+ax = fig.gca()
+ax.scatter(t[3300:4000],VDPS_x[3300:4000], color = cmap,s=5)
+ax.set_xlabel('$t$')
+ax.set_ylabel('$u$',rotation=0)
+plt.savefig('PRS_VDP_x.eps', format='eps')
+
+#randomly generate A, C
+A = np.random.rand(5,5)-0.5
+A = A / np.linalg.norm(A)
+
+C = np.random.rand(5,)-0.5
+C = C / np.linalg.norm(A)
+
+#compute reservoir states
+R = np.zeros((5,4000))
+R[:,0] = np.zeros(5,)
+for k in range(0,4000-1):
+    R[:,k+1] = A@R[:,k] + C*VDPS_x[k]
+
+#project onto states
+U,S,V = np.linalg.svd(R)
+projx = U[:,0:1].T@R[:,3300:4000] 
+projy = U[:,1:2].T@R[:,3300:4000]
+projz = U[:,2:3].T@R[:,3300:4000]
+    
+#plot reservoir states  
+fig = plt.figure(figsize = (6,4))
+ax = fig.gca(projection='3d')
+ax.scatter(projx, projy, projz, color = cmap, s=5)
+ax.set_xlabel('$u$')
+ax.set_ylabel('$v$')
+ax.set_zlabel('$w$')
+plt.savefig('PRS_VDP_reservoir.eps', format='eps')
+plt.show()   
+
+tmax, n = 120, 12000
+t = np.linspace(0, tmax, n)
+ls = np.linspace(0,1,6000)
+cmap = cm.viridis(ls)
+f = odeint(rossler, (2, 1, 5), t, args=(14,0.1,0.1))
+RS_x, RS_y, RS_z = f.T
+
+fig = plt.figure(figsize = (6,4))
+ax = fig.gca(projection='3d')
+ax.scatter(RS_x[6000:12000], RS_y[6000:12000], RS_z[6000:12000], color = cmap, s=5)
+ax.set_xlabel('$u$')
+ax.set_ylabel('$v$')
+ax.set_ylabel('$w$')
+plt.savefig('PRS_RS.eps', format='eps')
+plt.show()
+
+fig = plt.figure(figsize = (6,2))
+ax = fig.gca()
+ax.scatter(t[6000:12000],RS_x[6000:12000], color = cmap,s=5)
+ax.set_xlabel('$t$')
+ax.set_ylabel('$u$',rotation=0)
+plt.savefig('PRS_RS_x.eps', format='eps')
+
+#randomly generate A, C
+A = np.random.rand(7,7)-0.5
+A = A / np.linalg.norm(A)
+
+C = np.random.rand(7,)-0.5
+C = C / np.linalg.norm(A)
+
+#compute reservoir states
+R = np.zeros((7,12000))
+R[:,0] = np.zeros(7,)
+for k in range(0,12000-1):
+    R[:,k+1] = A@R[:,k] + C*RS_x[k]
+
+#project onto states
+U,S,V = np.linalg.svd(R)
+projx = U[:,0:1].T@R[:,6000:12000] 
+projy = U[:,1:2].T@R[:,6000:12000]
+projz = U[:,2:3].T@R[:,6000:12000]
+    
+#plot reservoir states  
+fig = plt.figure(figsize = (6,4))
+ax = fig.gca(projection='3d')
+ax.scatter(projx, projy, projz, color = cmap, s=5)
+ax.set_xlabel('$u$')
+ax.set_ylabel('$v$')
+ax.set_zlabel('$w$')
+plt.savefig('PRS_RS_reservoir.eps', format='eps')
+plt.show()
+
